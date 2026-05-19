@@ -4,9 +4,9 @@ import { StatusBadge } from "../components/Shared";
 
 export default function Dashboard({ totalIncome, totalExpense, netProfit, totalAssets, totalLiabilities, transactions, invoices }) {
   const cards = [
-    { label: "Total Revenue", value: fmt(totalIncome), color: T.green, icon: "↑", sub: "This period" },
-    { label: "Total Expenses", value: fmt(totalExpense), color: T.red, icon: "↓", sub: "This period" },
-    { label: "Net Profit", value: fmt(netProfit), color: netProfit >= 0 ? T.accent : T.red, icon: "◈", sub: "Profit margin: " + (totalIncome > 0 ? ((netProfit / totalIncome) * 100).toFixed(1) : "0.0") + "%" },
+    { label: "Total Revenue", value: fmt(totalIncome), color: T.green, icon: "↑", sub: "Cloud Synced" },
+    { label: "Total Expenses", value: fmt(totalExpense), color: T.red, icon: "↓", sub: "Cloud Synced" },
+    { label: "Net Profit", value: fmt(netProfit), color: netProfit >= 0 ? T.accent : T.red, icon: "◈", sub: "Margin: " + (totalIncome > 0 ? ((netProfit / totalIncome) * 100).toFixed(1) : "0.0") + "%" },
     { label: "Total Assets", value: fmt(totalAssets), color: T.purple, icon: "◉", sub: "Liabilities: " + fmt(totalLiabilities) },
   ];
 
@@ -51,8 +51,8 @@ export default function Dashboard({ totalIncome, totalExpense, netProfit, totalA
             pending.map(inv => (
               <div key={inv.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${T.border}` }}>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 600 }}>{inv.client}</div>
-                  <div style={{ fontSize: 11, color: T.muted }}>Due {fmtDate(inv.due)}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>{inv.client_name}</div>
+                  <div style={{ fontSize: 11, color: T.muted }}>Due {fmtDate(inv.due_date)}</div>
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <div style={{ fontWeight: 700, color: T.accent }}>{fmt(inv.amount)}</div>
@@ -80,7 +80,7 @@ export default function Dashboard({ totalIncome, totalExpense, netProfit, totalA
                 <td style={{ padding: "10px 12px", fontSize: 13, color: T.muted, fontFamily: T.mono }}>{fmtDate(t.date)}</td>
                 <td style={{ padding: "10px 12px", fontSize: 14, fontWeight: 500 }}>{t.description}</td>
                 <td style={{ padding: "10px 12px", fontSize: 13, color: T.muted }}>{t.category}</td>
-                <td style={{ padding: "10px 12px", fontSize: 13, color: T.muted }}>{t.account}</td>
+                <td style={{ padding: "10px 12px", fontSize: 13, color: T.muted }}>{t.account_name}</td>
                 <td style={{ padding: "10px 12px", fontWeight: 700, color: t.type === "Income" ? T.green : T.red, fontFamily: T.mono }}>
                   {t.type === "Income" ? "+" : "-"}{fmt(t.amount)}
                 </td>
