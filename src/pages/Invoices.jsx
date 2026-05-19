@@ -1,20 +1,32 @@
 import React, { useState } from "react";
-import { T, fmt, fmtDate, uid } from "../theme";
+import { T, fmt, fmtDate, DB } from "../theme";
 import { StatusBadge } from "../components/Shared";
 
 export default function Invoices({ invoices, setInvoices, customers, notify }) {
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ client: "", amount: "", date: new Date().toISOString().split("T")[0], due: "", status: "Draft" });
+  const [form, setForm] = useState({ client_name: "", amount: "", date: new Date().toISOString().split("T")[0], due_date: "", status: "Draft" });
 
-  const add = () => {
-    if (!form.client || !form.amount) return notify("Fill all fields", T.red);
-    setInvoices(prev => [...prev, { ...form, id: uid(), amount: parseFloat(form.amount) }]);
-    setShowForm(false); notify("Invoice created!");
+  const add = async () => {
+    if (!form.client_name || !form.amount || !form.due_date) return notify("Fill required fields", T.red);
+    try {
+      const rawInv = { ...form, amount: parseFloat(form.amount) };
+      const savedInv = await DB.insert("invoices", rawInv);
+      setInvoices(prev => [...prev, savedInv]);
+      setShowForm(false);
+      notify("Invoice generated successfully!");
+    } catch (e) {
+      notify(e.message, T.red);
+    }
   };
 
-  const updateStatus = (id, status) => {
-    setInvoices(prev => prev.map(i => i.id === id ? { ...i, status } : i));
-    notify("Status updated");
+  const updateStatus = async (id, newStatus) => {
+    try {
+      const updated = await DB.update("invoices", id, { status: newStatus });
+      setInvoices(prev => prev.map(i => i.id === id ? updated : i));
+      notify(`Status synced to: ${newStatus}`);
+    } catch (e) {
+      notify(e.message, T.red);
+    }
   };
 
   const statusColors = { Paid: T.green, Pending: T.yellow, Overdue: T.red, Draft: T.muted };
@@ -38,14 +50,14 @@ export default function Invoices({ invoices, setInvoices, customers, notify }) {
           <div style={{ fontWeight: 700, marginBottom: 16 }}>New Invoice</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
             <div><label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>Client</label>
-              <select value={form.client} onChange={e => setForm({ ...form, client: e.target.value })}>
+              <select value={form.client_name} onChange={e => setForm({ ...form, client_name: e.target.value })}>
                 <option value="">Select client</option>
-                {customers.map(c => <option key={c.id}>{c.name}</option>)}
+                {customers.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
               </select>
             </div>
             <div><label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>Amount ($)</label><input type="number" placeholder="0.00" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} /></div>
             <div><label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>Invoice Date</label><input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
-            <div><label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>Due Date</label><input type="date" value={form.due} onChange={e => setForm({ ...form, due: e.target.value })} /></div>
+            <div><label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>Due Date</label><input type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} /></div>
             <div><label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>Status</label>
               <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
                 {["Draft", "Pending", "Paid", "Overdue"].map(s => <option key={s}>{s}</option>)}
@@ -65,8 +77,8 @@ export default function Invoices({ invoices, setInvoices, customers, notify }) {
             <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
               <div style={{ width: 44, height: 44, borderRadius: 10, background: `${statusColors[inv.status]}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>◫</div>
               <div>
-                <div style={{ fontWeight: 700 }}>{inv.client}</div>
-                <div style={{ fontSize: 12, color: T.muted }}>Issued {fmtDate(inv.date)} · Due {fmtDate(inv.due)}</div>
+                <div style={{ fontWeight: 700 }}>{inv.client_name}</div>
+                <div style={{ fontSize: 12, color: T.muted }}>Issued {fmtDate(inv.date)} · Due {fmtDate(inv.due_date)}</div>
               </div>
             </div>
             <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
