@@ -1,0 +1,92 @@
+import React, { useState } from "react";
+import { T, fmt, fmtDate, uid } from "../theme";
+
+export default function Transactions({ transactions, setTransactions, accounts, notify }) {
+  const [showForm, setShowForm] = useState(false);
+  const [filter, setFilter] = useState("All");
+  const [search, setSearch] = useState("");
+  const [form, setForm] = useState({ date: new Date().toISOString().split("T")[0], description: "", category: "", amount: "", type: "Income", account: "Cash" });
+
+  const filtered = transactions.filter(t =>
+    (filter === "All" || t.type === filter) &&
+    (t.description.toLowerCase().includes(search.toLowerCase()) || t.category.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const add = () => {
+    if (!form.description || !form.amount) return notify("Fill all fields", T.red);
+    const tx = { ...form, id: uid(), amount: parseFloat(form.amount) };
+    setTransactions(prev => [...prev, tx]);
+    setForm({ date: new Date().toISOString().split("T")[0], description: "", category: "", amount: "", type: "Income", account: "Cash" });
+    setShowForm(false);
+    notify("Transaction added!");
+  };
+
+  const del = (id) => { setTransactions(prev => prev.filter(t => t.id !== id)); notify("Deleted", T.yellow); };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          {["All", "Income", "Expense"].map(f => (
+            <button key={f} onClick={() => setFilter(f)} style={{ padding: "8px 16px", background: filter === f ? T.accent : T.card, color: filter === f ? "#000" : T.muted, fontWeight: 600, fontSize: 13 }}>{f}</button>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <input placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: 220 }} />
+          <button onClick={() => setShowForm(o => !o)} style={{ padding: "10px 20px", background: T.accent, color: "#000", fontWeight: 700 }}>+ Add Transaction</button>
+        </div>
+      </div>
+
+      {showForm && (
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
+          <div style={{ fontWeight: 700, marginBottom: 16 }}>New Transaction</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+            <div><label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>Date</label><input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
+            <div><label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>Description</label><input placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+            <div><label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>Category</label><input placeholder="e.g. Revenue" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} /></div>
+            <div><label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>Amount ($)</label><input type="number" placeholder="0.00" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} /></div>
+            <div><label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>Type</label>
+              <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
+                <option>Income</option><option>Expense</option>
+              </select>
+            </div>
+            <div><label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>Account</label>
+              <select value={form.account} onChange={e => setForm({ ...form, account: e.target.value })}>
+                {accounts.map(a => <option key={a.id}>{a.name}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
+            <button onClick={add} style={{ padding: "10px 24px", background: T.green, color: "#000", fontWeight: 700 }}>Save</button>
+            <button onClick={() => setShowForm(false)} style={{ padding: "10px 24px", background: T.card, color: T.muted, border: `1px solid ${T.border}`, fontWeight: 600 }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: T.surface }}>
+              {["Date", "Description", "Category", "Account", "Type", "Amount", ""].map(h => (
+                <th key={h} style={{ textAlign: "left", padding: "12px 16px", fontSize: 11, color: T.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {[...filtered].reverse().map(t => (
+              <tr key={t.id} className="hover-row" style={{ borderBottom: `1px solid ${T.border}20` }}>
+                <td style={{ padding: "12px 16px", fontFamily: T.mono, fontSize: 13, color: T.muted }}>{fmtDate(t.date)}</td>
+                <td style={{ padding: "12px 16px", fontWeight: 500 }}>{t.description}</td>
+                <td style={{ padding: "12px 16px", fontSize: 13, color: T.muted }}>{t.category}</td>
+                <td style={{ padding: "12px 16px", fontSize: 13, color: T.muted }}>{t.account}</td>
+                <td style={{ padding: "12px 16px" }}><span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: t.type === "Income" ? `${T.green}20` : `${T.red}20`, color: t.type === "Income" ? T.green : T.red }}>{t.type}</span></td>
+                <td style={{ padding: "12px 16px", fontWeight: 700, fontFamily: T.mono, color: t.type === "Income" ? T.green : T.red }}>{t.type === "Income" ? "+" : "-"}{fmt(t.amount)}</td>
+                <td style={{ padding: "12px 16px" }}><button onClick={() => del(t.id)} style={{ background: `${T.red}20`, color: T.red, padding: "4px 10px", fontSize: 12, fontWeight: 600 }}>✕</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
