@@ -1,0 +1,54 @@
+import React, { useState } from "react";
+import { T } from "../theme";
+import { InfoBanner, StepCard, CodeBlock } from "../components/Shared";
+
+export default function DatabaseSetup() {
+  const [tab, setTab] = useState("supabase");
+  const tabs = [
+    { id: "supabase", label: "Supabase (Free)", icon: "⚡" },
+    { id: "firebase", label: "Firebase", icon: "🔥" },
+    { id: "planetscale", label: "PlanetScale", icon: "🌐" },
+    { id: "local", label: "Local Storage", icon: "💾" },
+  ];
+
+  return (
+    <div>
+      <InfoBanner color={T.accent}>Connect a real online database so your data persists across devices and users.</InfoBanner>
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={{ padding: "8px 16px", background: tab === t.id ? T.accent : T.card, color: tab === t.id ? "#000" : T.muted, fontWeight: 600, fontSize: 13 }}>{t.icon} {t.label}</button>
+        ))}
+      </div>
+      {tab === "supabase" && <SupabaseGuide />}
+      {tab === "firebase" && <FirebaseGuide />}
+      {tab === "planetscale" && <PlanetScaleGuide />}
+      {tab === "local" && <LocalStorageGuide />}
+    </div>
+  );
+}
+
+function SupabaseGuide() {
+  return (
+    <div style={{ display: "grid", gap: 16 }}>
+      <StepCard step={1} title="Create a Supabase project" color={T.green}>
+        Go to <b style={{ color: T.accent }}>supabase.com</b> → New Project. Free tier supports up to 500MB storage.
+      </StepCard>
+      <StepCard step={2} title="Create your tables" color={T.accent}>
+        In the SQL Editor, paste and execute this database layout:
+        <CodeBlock>{`create table transactions (
+  id bigint generated always as identity primary key,
+  date date not null,
+  description text,
+  category text,
+  amount numeric,
+  type text,
+  account text,
+  created_at timestamptz default now()
+);`}</CodeBlock>
+      </StepCard>
+    </div>
+  );
+}
+function FirebaseGuide() { return <div style={{ display: "grid", gap: 16 }}><StepCard step={1} title="Firebase Storage" color={T.yellow}>Go to console.firebase.google.com and provision a Cloud Firestore cluster instance.</StepCard></div>; }
+function PlanetScaleGuide() { return <div style={{ display: "grid", gap: 16 }}><StepCard step={1} title="PlanetScale MySQL" color={T.purple}>Register a database server instance at planetscale.com and interface using Prisma ORM Layer.</StepCard></div>; }
+function LocalStorageGuide() { return <div style={{ display: "grid", gap: 16 }}><InfoBanner color={T.yellow}>This application currently targets browser localized execution contexts safely.</InfoBanner></div>; }
