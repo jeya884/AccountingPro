@@ -1,20 +1,27 @@
 import React, { useState } from "react";
-import { T, fmt, uid } from "../theme";
+import { T, fmt, DB } from "../theme";
 
 export default function Customers({ customers, setCustomers, notify }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", phone: "", balance: 0 });
 
-  const add = () => {
+  const add = async () => {
     if (!form.name || !form.email) return notify("Fill required fields", T.red);
-    setCustomers(prev => [...prev, { ...form, id: uid() }]);
-    setForm({ name: "", email: "", phone: "", balance: 0 }); setShowForm(false); notify("Customer added!");
+    try {
+      const savedCust = await DB.insert("customers", form);
+      setCustomers(prev => [...prev, savedCust]);
+      setForm({ name: "", email: "", phone: "", balance: 0 }); 
+      setShowForm(false); 
+      notify("Customer profile established!");
+    } catch (e) {
+      notify(e.message, T.red);
+    }
   };
 
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <div style={{ color: T.muted }}>{customers.length} customers</div>
+        <div style={{ color: T.muted }}>{customers.length} registered accounts</div>
         <button onClick={() => setShowForm(o => !o)} style={{ padding: "10px 20px", background: T.accent, color: "#000", fontWeight: 700 }}>+ Add Customer</button>
       </div>
 
@@ -26,7 +33,7 @@ export default function Customers({ customers, setCustomers, notify }) {
             <div><label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>Phone</label><input placeholder="+1 555-0000" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
           </div>
           <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
-            <button onClick={add} style={{ padding: "10px 24px", background: T.green, color: "#000", fontWeight: 700 }}>Save</button>
+            <button onClick={add} style={{ padding: "10px 24px", background: T.green, color: "#000", fontWeight: 700 }}>Save Record</button>
             <button onClick={() => setShowForm(false)} style={{ padding: "10px 24px", background: T.card, color: T.muted, border: `1px solid ${T.border}`, fontWeight: 600 }}>Cancel</button>
           </div>
         </div>
@@ -45,7 +52,7 @@ export default function Customers({ customers, setCustomers, notify }) {
                 <div style={{ fontSize: 13, color: T.muted }}>{c.phone}</div>
               </div>
               {c.balance > 0 && <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 11, color: T.muted }}>Outstanding</div>
+                <div style={{ fontSize: 11, color: T.muted }}>Receivable</div>
                 <div style={{ fontWeight: 700, color: T.red, fontFamily: T.mono }}>{fmt(c.balance)}</div>
               </div>}
             </div>
