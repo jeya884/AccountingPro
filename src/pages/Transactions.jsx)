@@ -1,27 +1,40 @@
 import React, { useState } from "react";
-import { T, fmt, fmtDate, uid } from "../theme";
+import { T, fmt, fmtDate, DB } from "../theme";
 
 export default function Transactions({ transactions, setTransactions, accounts, notify }) {
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
-  const [form, setForm] = useState({ date: new Date().toISOString().split("T")[0], description: "", category: "", amount: "", type: "Income", account: "Cash" });
+  const [form, setForm] = useState({ date: new Date().toISOString().split("T")[0], description: "", category: "", amount: "", type: "Income", account_name: "Cash" });
 
   const filtered = transactions.filter(t =>
     (filter === "All" || t.type === filter) &&
     (t.description.toLowerCase().includes(search.toLowerCase()) || t.category.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const add = () => {
+  const add = async () => {
     if (!form.description || !form.amount) return notify("Fill all fields", T.red);
-    const tx = { ...form, id: uid(), amount: parseFloat(form.amount) };
-    setTransactions(prev => [...prev, tx]);
-    setForm({ date: new Date().toISOString().split("T")[0], description: "", category: "", amount: "", type: "Income", account: "Cash" });
-    setShowForm(false);
-    notify("Transaction added!");
+    try {
+      const rawTx = { ...form, amount: parseFloat(form.amount) };
+      const savedTx = await DB.insert("transactions", rawTx);
+      setTransactions(prev => [...prev, savedTx]);
+      setForm({ date: new Date().toISOString().split("T")[0], description: "", category: "", amount: "", type: "Income", account_name: "Cash" });
+      setShowForm(false);
+      notify("Transaction saved to database!");
+    } catch (e) {
+      notify(e.message, T.red);
+    }
   };
 
-  const del = (id) => { setTransactions(prev => prev.filter(t => t.id !== id)); notify("Deleted", T.yellow); };
+  const del = async (id) => {
+    try {
+      await DB.delete("transactions", id);
+      setTransactions(prev => prev.filter(t => t.id !== id));
+      notify("Transaction deleted!", T.yellow);
+    } catch (e) {
+      notify(e.message, T.red);
+    }
+  };
 
   return (
     <div>
@@ -51,13 +64,13 @@ export default function Transactions({ transactions, setTransactions, accounts, 
               </select>
             </div>
             <div><label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>Account</label>
-              <select value={form.account} onChange={e => setForm({ ...form, account: e.target.value })}>
-                {accounts.map(a => <option key={a.id}>{a.name}</option>)}
+              <select value={form.account_name} onChange={e => setForm({ ...form, account_name: e.target.value })}>
+                {accounts.map(a => <option key={a.id} value={a.name}>{a.name}</option>)}
               </select>
             </div>
           </div>
           <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
-            <button onClick={add} style={{ padding: "10px 24px", background: T.green, color: "#000", fontWeight: 700 }}>Save</button>
+            <button onClick={add} style={{ padding: "10px 24px", background: T.green, color: "#000", fontWeight: 700 }}>Save to Cloud</button>
             <button onClick={() => setShowForm(false)} style={{ padding: "10px 24px", background: T.card, color: T.muted, border: `1px solid ${T.border}`, fontWeight: 600 }}>Cancel</button>
           </div>
         </div>
@@ -78,7 +91,7 @@ export default function Transactions({ transactions, setTransactions, accounts, 
                 <td style={{ padding: "12px 16px", fontFamily: T.mono, fontSize: 13, color: T.muted }}>{fmtDate(t.date)}</td>
                 <td style={{ padding: "12px 16px", fontWeight: 500 }}>{t.description}</td>
                 <td style={{ padding: "12px 16px", fontSize: 13, color: T.muted }}>{t.category}</td>
-                <td style={{ padding: "12px 16px", fontSize: 13, color: T.muted }}>{t.account}</td>
+                <td style={{ padding: "12px 16px", fontSize: 13, color: T.muted }}>{t.account_name}</td>
                 <td style={{ padding: "12px 16px" }}><span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: t.type === "Income" ? `${T.green}20` : `${T.red}20`, color: t.type === "Income" ? T.green : T.red }}>{t.type}</span></td>
                 <td style={{ padding: "12px 16px", fontWeight: 700, fontFamily: T.mono, color: t.type === "Income" ? T.green : T.red }}>{t.type === "Income" ? "+" : "-"}{fmt(t.amount)}</td>
                 <td style={{ padding: "12px 16px" }}><button onClick={() => del(t.id)} style={{ background: `${T.red}20`, color: T.red, padding: "4px 10px", fontSize: 12, fontWeight: 600 }}>✕</button></td>
