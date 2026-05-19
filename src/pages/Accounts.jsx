@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { T, fmt, uid } from "../theme";
+import { T, fmt, DB } from "../theme";
 
 export default function Accounts({ accounts, setAccounts, notify }) {
   const [showForm, setShowForm] = useState(false);
@@ -7,10 +7,18 @@ export default function Accounts({ accounts, setAccounts, notify }) {
   const types = ["Asset", "Liability", "Equity", "Income", "Expense"];
   const typeColors = { Asset: T.green, Liability: T.red, Equity: T.purple, Income: T.accent, Expense: T.yellow };
 
-  const add = () => {
+  const add = async () => {
     if (!form.name) return notify("Enter account name", T.red);
-    setAccounts(prev => [...prev, { ...form, id: uid(), balance: parseFloat(form.balance) || 0 }]);
-    setForm({ name: "", type: "Asset", balance: "" }); setShowForm(false); notify("Account added!");
+    try {
+      const rawAcc = { ...form, balance: parseFloat(form.balance) || 0 };
+      const savedAcc = await DB.insert("accounts", rawAcc);
+      setAccounts(prev => [...prev, savedAcc]);
+      setForm({ name: "", type: "Asset", balance: "" }); 
+      setShowForm(false); 
+      notify("Account added directly to ledger!");
+    } catch (e) {
+      notify(e.message, T.red);
+    }
   };
 
   return (
@@ -52,7 +60,7 @@ export default function Accounts({ accounts, setAccounts, notify }) {
           <div key={tp} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden", marginBottom: 16 }}>
             <div style={{ background: `${typeColors[tp]}10`, borderBottom: `1px solid ${T.border}`, padding: "12px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontWeight: 700, color: typeColors[tp] }}>{tp}s</span>
-              <span style={{ fontWeight: 800, fontFamily: T.mono, color: typeColors[tp] }}>{fmt(group.reduce((s, a) => s + a.balance, 0))}</span>
+              <span style={{ fontWeight: 800, fontFamily: T.mono, color: typeColors[tp] }}>{fmt(group.reduce((s, a) => s + Number(a.balance), 0))}</span>
             </div>
             {group.map(a => (
               <div key={a.id} className="hover-row" style={{ padding: "14px 20px", borderBottom: `1px solid ${T.border}20`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
