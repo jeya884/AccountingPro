@@ -1,3 +1,5 @@
+import { createClient } from '@supabase/supabase-js';
+
 export const T = {
   bg: "#0A0F1E",
   surface: "#111827",
@@ -15,53 +17,65 @@ export const T = {
   mono: "'JetBrains Mono', monospace",
 };
 
-export const seed = {
-  accounts: [
-    { id: 1, name: "Cash", type: "Asset", balance: 45000 },
-    { id: 2, name: "Accounts Receivable", type: "Asset", balance: 12300 },
-    { id: 3, name: "Inventory", type: "Asset", balance: 8900 },
-    { id: 4, name: "Accounts Payable", type: "Liability", balance: 5400 },
-    { id: 5, name: "Loans Payable", type: "Liability", balance: 20000 },
-    { id: 6, name: "Owner's Equity", type: "Equity", balance: 40800 },
-    { id: 7, name: "Revenue", type: "Income", balance: 68000 },
-    { id: 8, name: "Cost of Goods Sold", type: "Expense", balance: 32000 },
-    { id: 9, name: "Operating Expenses", type: "Expense", balance: 15600 },
-  ],
-  transactions: [
-    { id: 1, date: "2026-05-01", description: "Client Payment - Acme Corp", category: "Revenue", amount: 8500, type: "Income", account: "Cash" },
-    { id: 2, date: "2026-05-03", description: "Office Rent", category: "Operating Expenses", amount: 2200, type: "Expense", account: "Cash" },
-    { id: 3, date: "2026-05-05", description: "Software Licenses", category: "Operating Expenses", amount: 450, type: "Expense", account: "Cash" },
-    { id: 4, date: "2026-05-08", description: "Supplier Invoice #INV-204", category: "Cost of Goods Sold", amount: 3800, type: "Expense", account: "Accounts Payable" },
-    { id: 5, date: "2026-05-10", description: "Service Revenue - Beta LLC", category: "Revenue", amount: 5200, type: "Income", account: "Accounts Receivable" },
-    { id: 6, date: "2026-05-12", description: "Utilities Bill", category: "Operating Expenses", amount: 320, type: "Expense", account: "Cash" },
-    { id: 7, date: "2026-05-15", description: "Product Sales", category: "Revenue", amount: 11200, type: "Income", account: "Cash" },
-    { id: 8, date: "2026-05-17", description: "Marketing Campaign", category: "Operating Expenses", amount: 1800, type: "Expense", account: "Cash" },
-  ],
-  invoices: [
-    { id: 1, client: "Acme Corp", amount: 8500, status: "Paid", date: "2026-04-25", due: "2026-05-10" },
-    { id: 2, client: "Beta LLC", amount: 5200, status: "Pending", date: "2026-05-10", due: "2026-06-10" },
-    { id: 3, client: "Gamma Inc", amount: 3400, status: "Overdue", date: "2026-04-01", due: "2026-05-01" },
-    { id: 4, client: "Delta Corp", amount: 7800, status: "Draft", date: "2026-05-18", due: "2026-06-18" },
-  ],
-  customers: [
-    { id: 1, name: "Acme Corp", email: "billing@acme.com", phone: "+1 555-0101", balance: 0 },
-    { id: 2, name: "Beta LLC", email: "accounts@beta.com", phone: "+1 555-0202", balance: 5200 },
-    { id: 3, name: "Gamma Inc", email: "finance@gamma.com", phone: "+1 555-0303", balance: 3400 },
-    { id: 4, name: "Delta Corp", email: "pay@delta.com", phone: "+1 555-0404", balance: 0 },
-  ],
-};
+// ====================================================================
+// SUPABASE CLIENT INITIALIZATION
+// Replace these placeholders with your actual project keys from Supabase
+// ====================================================================
+const supabaseUrl = 'https://bkiosrbwriyepnnzfzhb.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJraW9zcmJ3cml5ZXBubnpmemhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMzk2MjAsImV4cCI6MjA5NDcxNTYyMH0.BJpzEn2oy3O36NL4JogMitR2jo6A-bjEM9UZXOv-2DA';
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Async Database Interface Engine
 export const DB = {
-  get: (key) => {
-    try { return JSON.parse(localStorage.getItem("accpro_" + key)) || seed[key]; }
-    catch { return seed[key]; }
+  get: async (table) => {
+    const { data, error } = await supabase
+      .from(table)
+      .select('*')
+      .order('id', { ascending: true });
+    
+    if (error) {
+      console.error(`Error fetching from ${table}:`, error.message);
+      return [];
+    }
+    return data;
   },
-  set: (key, val) => localStorage.setItem("accpro_" + key, JSON.stringify(val)),
+
+  insert: async (table, record) => {
+    // Remove client-side temporary IDs so Supabase can assign them via identity columns
+    const { id, ...cleanRecord } = record; 
+    const { data, error } = await supabase
+      .from(table)
+      .insert([cleanRecord])
+      .select();
+
+    if (error) throw new Error(error.message);
+    return data[0];
+  },
+
+  update: async (table, id, updates) => {
+    const { data, error } = await supabase
+      .from(table)
+      .update(updates)
+      .eq('id', id)
+      .select();
+
+    if (error) throw new Error(error.message);
+    return data[0];
+  },
+
+  delete: async (table, id) => {
+    const { error } = await supabase
+      .from(table)
+      .delete()
+      .eq('id', id);
+
+    if (error) throw new Error(error.message);
+    return true;
+  }
 };
 
 export const fmt = (n) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 export const fmtDate = (d) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-export const uid = () => Date.now() + Math.floor(Math.random() * 1000);
 
 export const NAV = [
   { id: "dashboard", label: "Dashboard", icon: "⬡" },
@@ -73,4 +87,3 @@ export const NAV = [
   { id: "database", label: "Database Setup", icon: "☁" },
   { id: "publish", label: "Publish Guide", icon: "↑" },
 ];
-
